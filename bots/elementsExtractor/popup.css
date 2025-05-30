@@ -1,0 +1,402 @@
+/* =========================== @section: Base Styles & Variables =========================== */
+:root {
+    --brand-yellow: #ffe066;
+    --ai-blue: #38b6ff;
+    --ai-cyan: #00ffd0;
+    --ai-dark: #161a2a;
+    --ai-shadow: #21253a;
+    --font-main: 'JetBrains Mono', 'Fira Mono', 'Menlo', 'Consolas', 'monospace';
+}
+
+
+html,
+body {
+    background: var(--ai-dark);
+    color: #fff;
+    font-family: var(--font-main);
+    margin: 0;
+    padding: 0;
+    min-width: 420px;
+    min-height: 440px;
+}
+
+.popup-root {
+    padding: 0 18px 14px 18px;
+    background: var(--ai-dark);
+    border-radius: 16px;
+    box-shadow: 0 2px 32px rgba(38, 255, 222, 0.13);
+}
+
+/* =========================== @section: Header & Branding =========================== */
+/* //V1:--- */
+/* .header-row {
+    display: flex;
+    align-items: center;
+    padding-top: 14px;
+    font-size: 1.4em;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+} */
+/* //V2:-- */
+.header-row {
+    display: flex;
+    align-items: center;
+    font-size: 1.42rem;
+    margin-bottom: 8px;
+    font-weight: 700;
+    gap: 7px;
+}
+
+.ai-bot-avatar {
+    font-size: 1.7em;
+    margin-right: 12px;
+    filter: drop-shadow(0 0 6px var(--ai-cyan));
+    transition: filter 0.2s;
+}
+
+.ai-bot-avatar:hover {
+    filter: drop-shadow(0 0 16px var(--ai-blue)) brightness(1.2);
+}
+
+.popup-title b {
+    color: var(--brand-yellow);
+    text-shadow: 0 1px 0 #21253a, 0 0 7px #ffe06655;
+}
+
+/* =========================== @section: AI Tip =========================== */
+.ai-tip {
+    background: linear-gradient(90deg, var(--ai-blue), var(--brand-yellow) 80%);
+    color: #202246;
+    font-weight: 600;
+    border-radius: 9px;
+    box-shadow: 0 2px 16px #00ffd0cc;
+    margin-bottom: 12px;
+    padding: 7px 12px;
+    font-size: 1em;
+    transition: box-shadow 0.2s, background 0.3s;
+    animation: pulseTip 2.2s infinite alternate;
+}
+
+.eye {
+    margin-left: 1px;
+    font-size: 1.3em;
+}
+
+@keyframes pulseTip {
+    0% {
+        box-shadow: 0 2px 9px #00ffd066;
+    }
+
+    100% {
+        box-shadow: 0 2px 22px #ffe066bb;
+    }
+}
+
+/* =========================== @section: Search Input =========================== */
+.search-row {
+    margin-bottom: 8px;
+}
+
+.search-row input {
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: 7px;
+    border: none;
+    background: #23263e;
+    color: #fff;
+    font-size: 1em;
+    font-family: var(--font-main);
+    outline: none;
+    box-shadow: 0 1px 8px #38b6ff18;
+    transition: box-shadow 0.2s, background 0.2s;
+}
+
+.search-row input:focus {
+    background: #2932ff26;
+    box-shadow: 0 1px 12px #00ffd066;
+}
+
+/* =========================== @section: Element Type Filters =========================== */
+.type-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 13px;
+    margin-bottom: 9px;
+}
+
+.type-row label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #21253a;
+    color: #d5fffa;
+    border-radius: 6px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 500;
+    margin-bottom: 2px;
+    transition:
+        background 0.16s,
+        color 0.16s,
+        font-size 0.2s,
+        box-shadow 0.2s;
+}
+
+.type-row label:hover,
+.type-row label:focus-within {
+    background: linear-gradient(90deg, var(--ai-blue), var(--brand-yellow) 120%);
+    color: #1a2233;
+    font-size: 1.08em;
+    font-weight: 600;
+    box-shadow: 0 0 15px #00ffd055;
+    outline: 2px solid var(--ai-cyan);
+    z-index: 2;
+}
+
+.type-row input[type="checkbox"] {
+    accent-color: var(--ai-blue);
+    width: 1.15em;
+    height: 1.15em;
+    margin-right: 2px;
+    transition: accent-color 0.2s;
+}
+
+/* =========================== @section: Toggle Switches =========================== */
+.toggle-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px 17px;
+    margin-bottom: 10px;
+}
+
+.toggle-row label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #2a2d4d;
+    color: #fff6cc;
+    border-radius: 6px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-size: 0.96em;
+    margin-bottom: 2px;
+    transition:
+        background 0.16s,
+        color 0.16s,
+        font-size 0.2s,
+        box-shadow 0.2s;
+}
+
+.toggle-row label:hover,
+.toggle-row label:focus-within {
+    background: linear-gradient(90deg, #ffe066bb, #00ffd0 130%);
+    color: #1a2233;
+    font-size: 1.09em;
+    font-weight: 600;
+    box-shadow: 0 0 13px #ffe06655;
+    outline: 2px solid var(--brand-yellow);
+}
+
+.toggle-row input[type="checkbox"] {
+    accent-color: var(--brand-yellow);
+    width: 1.10em;
+    height: 1.10em;
+    margin-right: 2px;
+    transition: accent-color 0.2s;
+}
+
+/* =========================== @section: Extract Button =========================== */
+.extract-btn {
+    width: 100%;
+    padding: 12px 0;
+    margin-bottom: 10px;
+    font-size: 1.14em;
+    font-weight: bold;
+    border: none;
+    border-radius: 9px;
+    background: linear-gradient(90deg, var(--ai-blue) 60%, var(--brand-yellow) 120%);
+    color: #121c26;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    box-shadow: 0 3px 16px #00ffd055;
+    outline: none;
+    transition: background 0.18s, box-shadow 0.18s, transform 0.13s;
+    animation: pulseBtn 2s infinite alternate;
+}
+
+.extract-btn:hover,
+.extract-btn:focus {
+    background: linear-gradient(90deg, var(--brand-yellow) 20%, var(--ai-cyan) 90%);
+    box-shadow: 0 5px 20px #ffe06688;
+    transform: scale(1.04);
+}
+
+@keyframes pulseBtn {
+    0% {
+        box-shadow: 0 3px 10px #38b6ff33;
+    }
+
+    100% {
+        box-shadow: 0 4px 24px #ffe066aa;
+    }
+}
+
+/* =========================== @section: Status + Preview Table =========================== */
+.status-row {
+    min-height: 22px;
+    margin-bottom: 8px;
+    font-size: 1.04em;
+    font-weight: 500;
+    color: #ffe066;
+    text-shadow: 0 1px 2px #121c26;
+}
+
+.preview-table {
+    max-height: 230px;
+    overflow-y: auto;
+    border-radius: 6px;
+    box-shadow: 0 2px 12px #00ffd022;
+    background: #181a27;
+}
+
+.preview-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.98em;
+}
+
+.preview-table th,
+.preview-table td {
+    padding: 5px 7px;
+    border-bottom: 1px solid #292b3d;
+}
+
+.preview-table th {
+    background: linear-gradient(90deg, #38b6ff11, #ffe06622 80%);
+    font-weight: 700;
+    color: #ffe066;
+    letter-spacing: 0.01em;
+    text-align: left;
+}
+
+.preview-table tr:nth-child(even) {
+    background: #202233;
+}
+
+.preview-table tr:nth-child(odd) {
+    background: #23263e;
+}
+
+.el-badge {
+    background: #38b6ffbb;
+    color: #18224b;
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-size: 0.97em;
+    font-weight: 700;
+}
+
+.shadow-badge {
+    background: #ffe066cc;
+    color: #18224b;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 0.95em;
+    font-weight: 700;
+}
+
+.copy-btn,
+.hl-btn {
+    border: none;
+    background: #23263e;
+    border-radius: 5px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background 0.15s, transform 0.15s;
+}
+
+.copy-btn:hover,
+.hl-btn:hover {
+    background: #ffe066;
+    color: #23263e;
+    transform: scale(1.15);
+    font-weight: bold;
+}
+
+/* =========================== @section: Footer =========================== */
+.footer {
+    margin-top: 14px;
+    text-align: center;
+    color: #38b6ffcc;
+    font-size: 0.97em;
+    letter-spacing: 0.05em;
+    opacity: 0.75;
+}
+
+/* =========================== @section: Loading/Animation Classes =========================== */
+.loading {
+    color: #00ffd0;
+    font-weight: bold;
+    letter-spacing: 0.02em;
+    animation: spinText 0.9s linear infinite;
+}
+
+@keyframes spinText {
+    0% {
+        color: #00ffd0;
+    }
+
+    30% {
+        color: #ffe066;
+    }
+
+    50% {
+        color: #38b6ff;
+    }
+
+    100% {
+        color: #00ffd0;
+    }
+}
+
+/* =========================== @section: Scrollbar Styles =========================== */
+.preview-table::-webkit-scrollbar {
+    height: 10px;
+    width: 8px;
+}
+
+.preview-table::-webkit-scrollbar-thumb {
+    background: #3ffdd022;
+    border-radius: 6px;
+}
+
+/* //TODO:- -Add max-height so popup never overflows screen before extraction */
+html,
+body {
+    min-width: 420px;
+    min-height: 440px;
+    /* Add max-height so popup never overflows screen before extraction */
+    max-height: 480px;
+    overflow: hidden;
+}
+
+.popup-root {
+    max-width: 470px;
+    min-width: 410px;
+    min-height: 430px;
+    max-height: 480px;
+    /* Same as above, start compact */
+    overflow-y: hidden;
+    transition: max-height 0.5s cubic-bezier(.4, 2.5, .5, 1), box-shadow 0.25s;
+}
+
+/* //TODO: - Expand Size After Scanning */
+.popup-root.expanded {
+    max-height: 850px;
+    overflow-y: auto;
+    transition: max-height 0.5s cubic-bezier(.4, 2.5, .5, 1), box-shadow 0.25s;
+}
+

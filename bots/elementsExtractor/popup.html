@@ -1,0 +1,73 @@
+<!-- ============================ @section: Popup Root Layout ============================ -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Element AI Extractor 🤖👁️</title>
+    <!-- ======================= @section: Stylesheet Link ======================= -->
+    <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+    <!-- ======================= @section: Popup Container ======================= -->
+    <div class="popup-root">
+
+        <!-- ======================= @section: Header & Branding ======================= -->
+        <div class="header-row">
+            <span class="ai-bot-avatar">🤖</span>
+            <span class="popup-title">Element <b>AI Extractor</b> <span class="eye">👁️</span> </span>
+        </div>
+
+        <!-- ======================= @section: AI Tip ======================= -->
+        <div class="ai-tip" id="ai-tip">AI Tip Here...</div>
+
+        <!-- ======================= @section: Search Row ======================= -->
+        <div class="search-row">
+            <input id="search" type="text" placeholder="Search element names..." />
+        </div>
+
+        <!-- ======================= @section: Element Type Filters ======================= -->
+        <div class="type-row">
+            <label><input type="checkbox" id="filterAll" /> <span>All Elements</span></label>
+            <label><input type="checkbox" id="filterLinks" /> <span>Links</span></label>
+            <label><input type="checkbox" id="filterButtons" /> <span>Buttons</span></label>
+            <label><input type="checkbox" id="filterInputs" /> <span>Inputs</span></label>
+            <label><input type="checkbox" id="filterCombo" /> <span>Combo</span></label>
+            <label><input type="checkbox" id="filterHeaders" /> <span>Headers</span></label>
+            <label><input type="checkbox" id="filterTextboxes" /> <span>Textboxes</span></label>
+            <label><input type="checkbox" id="filterCheckboxes" /> <span>Checkboxes</span></label>
+            <label><input type="checkbox" id="filterRadios" /> <span>Radios</span></label>
+            <label><input type="checkbox" id="filterLists" /> <span>Lists</span></label>
+            <label><input type="checkbox" id="filterForms" /> <span>Forms</span></label>
+            <label><input type="checkbox" id="filterSVG" /> <span>SVG</span></label>
+            <label><input type="checkbox" id="filterTables" /> <span>Tables</span></label>
+            <label><input type="checkbox" id="filterSpans" /> <span>Spans</span></label>
+            <label><input type="checkbox" id="filterDivs" /> <span>Divs</span></label>
+            <label><input type="checkbox" id="filterCustom" /> <span>Custom Elements</span></label>
+        </div>
+
+        <!-- ======================= @section: Toggle Filters (Visible/Hidden/Shadow) ======================= -->
+        <div class="toggle-row">
+            <label><input type="checkbox" id="filterVisible" /> <span>Visible Only</span></label>
+            <label><input type="checkbox" id="filterHidden" /> <span>Hidden Only</span></label>
+            <label><input type="checkbox" id="filterShadow" /> <span>Shadow DOM</span></label>
+        </div>
+
+        <!-- ======================= @section: Extract Button ======================= -->
+        <button class="extract-btn" id="extract">🔎 Extract Elements</button>
+
+        <!-- ======================= @section: Status and Table Preview ======================= -->
+        <div id="status" class="status-row"></div>
+        <div id="preview" class="preview-table"></div>
+
+        <!-- ======================= @section: Footer ======================= -->
+        <div class="footer">
+            <span>Powered by <b>Element AI Extractor 🤖👁️</b> &copy; 2025</span>
+        </div>
+    </div>
+    <!-- ======================= @section: JS ======================= -->
+    <script src="popup.js"></script>
+</body>
+
+</html>
