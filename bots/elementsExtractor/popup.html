@@ -1,73 +1,100 @@
-<!-- ============================ @section: Popup Root Layout ============================ -->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Element AI Extractor 🤖👁️</title>
-    <!-- ======================= @section: Stylesheet Link ======================= -->
-    <link rel="stylesheet" href="popup.css">
+    <link rel="stylesheet" href="popup.css" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500&family=Space+Grotesk:wght@500;700&display=swap"
+        rel="stylesheet">
 </head>
 
 <body>
-    <!-- ======================= @section: Popup Container ======================= -->
     <div class="popup-root">
-
-        <!-- ======================= @section: Header & Branding ======================= -->
         <div class="header-row">
-            <span class="ai-bot-avatar">🤖</span>
-            <span class="popup-title">Element <b>AI Extractor</b> <span class="eye">👁️</span> </span>
+            <span class="logo">🤖</span>
+            <span class="title">Element <span class="ai-gradient">AI Extractor</span> <span
+                    class="eye">👁️</span></span>
         </div>
+        <div class="ai-tip" id="ai-tip">Pro tip: Prefer visible elements for automation—hidden ones may change.</div>
 
-        <!-- ======================= @section: AI Tip ======================= -->
-        <div class="ai-tip" id="ai-tip">AI Tip Here...</div>
-
-        <!-- ======================= @section: Search Row ======================= -->
         <div class="search-row">
-            <input id="search" type="text" placeholder="Search element names..." />
+            <span class="search-icon">🔍</span>
+            <input id="search" class="search-box" placeholder="Search elements..." type="text" autocomplete="off" />
         </div>
 
-        <!-- ======================= @section: Element Type Filters ======================= -->
         <div class="type-row">
-            <label><input type="checkbox" id="filterAll" /> <span>All Elements</span></label>
-            <label><input type="checkbox" id="filterLinks" /> <span>Links</span></label>
-            <label><input type="checkbox" id="filterButtons" /> <span>Buttons</span></label>
-            <label><input type="checkbox" id="filterInputs" /> <span>Inputs</span></label>
-            <label><input type="checkbox" id="filterCombo" /> <span>Combo</span></label>
-            <label><input type="checkbox" id="filterHeaders" /> <span>Headers</span></label>
-            <label><input type="checkbox" id="filterTextboxes" /> <span>Textboxes</span></label>
-            <label><input type="checkbox" id="filterCheckboxes" /> <span>Checkboxes</span></label>
-            <label><input type="checkbox" id="filterRadios" /> <span>Radios</span></label>
-            <label><input type="checkbox" id="filterLists" /> <span>Lists</span></label>
-            <label><input type="checkbox" id="filterForms" /> <span>Forms</span></label>
-            <label><input type="checkbox" id="filterSVG" /> <span>SVG</span></label>
-            <label><input type="checkbox" id="filterTables" /> <span>Tables</span></label>
-            <label><input type="checkbox" id="filterSpans" /> <span>Spans</span></label>
-            <label><input type="checkbox" id="filterDivs" /> <span>Divs</span></label>
-            <label><input type="checkbox" id="filterCustom" /> <span>Custom Elements</span></label>
+            <label class="filter-btn"><input type="checkbox" id="filterAll" checked>All Elements</label>
+            <label class="filter-btn"><input type="checkbox" id="filterLinks">Links</label>
+            <label class="filter-btn"><input type="checkbox" id="filterButtons">Buttons</label>
+            <label class="filter-btn"><input type="checkbox" id="filterInputs">Inputs</label>
+            <label class="filter-btn"><input type="checkbox" id="filterCombo">Combo</label>
+            <label class="filter-btn"><input type="checkbox" id="filterHeaders">Headers</label>
+            <label class="filter-btn"><input type="checkbox" id="filterTextboxes">Textboxes</label>
+            <label class="filter-btn"><input type="checkbox" id="filterCheckboxes">Checkboxes</label>
+            <label class="filter-btn"><input type="checkbox" id="filterRadios">Radios</label>
+            <label class="filter-btn"><input type="checkbox" id="filterLists">Lists</label>
+            <label class="filter-btn"><input type="checkbox" id="filterForms">Forms</label>
+            <label class="filter-btn"><input type="checkbox" id="filterSVG">SVG</label>
+            <label class="filter-btn"><input type="checkbox" id="filterTables">Tables</label>
+            <label class="filter-btn"><input type="checkbox" id="filterSpans">Spans</label>
+            <label class="filter-btn"><input type="checkbox" id="filterDivs">Divs</label>
+            <label class="filter-btn"><input type="checkbox" id="filterCustom">Custom Elements</label>
+            <label class="filter-btn"><input type="checkbox" id="filterShadow">Shadow DOM</label>
         </div>
 
-        <!-- ======================= @section: Toggle Filters (Visible/Hidden/Shadow) ======================= -->
         <div class="toggle-row">
-            <label><input type="checkbox" id="filterVisible" /> <span>Visible Only</span></label>
-            <label><input type="checkbox" id="filterHidden" /> <span>Hidden Only</span></label>
-            <label><input type="checkbox" id="filterShadow" /> <span>Shadow DOM</span></label>
+            <span class="switch-label">Visible Only</span>
+            <label class="switch">
+                <input type="checkbox" id="filterVisible" checked>
+                <span class="slider"></span>
+            </label>
+            <span class="switch-label">Hidden Only</span>
+            <label class="switch">
+                <input type="checkbox" id="filterHidden">
+                <span class="slider"></span>
+            </label>
         </div>
 
-        <!-- ======================= @section: Extract Button ======================= -->
-        <button class="extract-btn" id="extract">🔎 Extract Elements</button>
-
-        <!-- ======================= @section: Status and Table Preview ======================= -->
+        <div class="export-controls">
+            <select id="exportFormat" class="format-select">
+                <option value="csv">CSV Format</option>
+                <option value="json">JSON Format</option>
+                <option value="excel">Excel Format</option>
+            </select>
+            <button class="extract-btn" id="extract">
+                <span class="rocket">🚀</span> Extract Elements
+            </button>
+        </div>
         <div id="status" class="status-row"></div>
         <div id="preview" class="preview-table"></div>
+        <div class="stats-bar" id="stats">
+            <span id="elementCount">0 elements found</span>
+            <span id="visibilityStats">0 visible • 0 hidden</span>
+        </div>
 
-        <!-- ======================= @section: Footer ======================= -->
+        <div class="quick-actions">
+            <button class="action-btn" id="selectAll" title="Select All Elements">
+                <span>🎯</span> All
+            </button>
+            <button class="action-btn" id="selectInteractive" title="Select Interactive Elements Only">
+                <span>⚡</span> Interactive
+            </button>
+            <button class="action-btn" id="clearFilters" title="Clear All Filters">
+                <span>🧹</span> Clear
+            </button>
+            <button class="action-btn" id="refreshExtraction" title="Refresh Extraction">
+                <span>🔄</span> Refresh
+            </button>
+        </div>
+
         <div class="footer">
-            <span>Powered by <b>Element AI Extractor 🤖👁️</b> &copy; 2025</span>
+            <span>by <span class="ai-gradient">AI Synergy Labs</span></span>
         </div>
     </div>
-    <!-- ======================= @section: JS ======================= -->
     <script src="popup.js"></script>
+
 </body>
 
 </html>

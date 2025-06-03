@@ -198,6 +198,7 @@
   // It's also good to specify how the tag should be matched
   "todo-tree.general.tags": ["TODO:", "FIXME:", "NOTE:", "FIX:", "GOOD:", "BAD:", "EXCELLENT:", "USE:", "V1:", "V2:", "FUNCTION:", "API:", "CLASS:", "USE-THIS:", "START:", "END:","ISSUE:","SOLUTION:"],
   "todo-tree.general.matchCase": false,
-  "todo-tree.general.tagGroups": {}
+  "todo-tree.general.tagGroups": {},
+  "liveServer.settings.port": 5501
   //END: --- TODO TREE ---
 }
