@@ -53,9 +53,34 @@ body {
     margin-bottom: 12px;
     margin-top: 4px;
     border-radius: 10px;
-    padding: 11px 16px 11px 18px;
+    padding: 0;
     animation: fadein 1.2s cubic-bezier(.22, 1, .36, 1);
     box-shadow: 0 2px 8px 0 #2d30ad42;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    position: relative;
+}
+
+.ai-tip-sidebar {
+    width: 4px;
+    background: linear-gradient(180deg, #59f9d6 0%, #18aaff 50%, #ffc366 100%);
+    border-radius: 10px 0 0 10px;
+    flex-shrink: 0;
+}
+
+.ai-tip-content {
+    padding: 11px 16px 11px 14px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.ai-tip-content strong {
+    color: #59f9d6;
+    font-weight: 700;
+    margin-right: 6px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 @keyframes fadein {
@@ -78,6 +103,7 @@ body {
     margin-bottom: 8px;
     box-shadow: 0 0 0 2px #2e347a30;
     font-size: 1.06rem;
+    position: relative;
 }
 
 .search-icon {
@@ -91,9 +117,46 @@ body {
     outline: none;
     color: #fff;
     font-size: 1.13em;
-    width: 98%;
+    width: 100%;
     font-family: inherit;
     padding: 4px 0;
+    padding-right: 30px; /* Make space for clear button */
+}
+
+.search-box::placeholder {
+    color: #fff;
+    opacity: 0.7;
+}
+
+.clear-btn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #59f9d6;
+    font-size: 1.1em;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    padding: 2px 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+}
+
+.clear-btn:hover {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+    transform: scale(1.1);
+}
+
+.search-row:hover .clear-btn,
+.search-box:focus + .clear-btn,
+.search-box:not(:placeholder-shown) + .clear-btn {
+    opacity: 1;
 }
 
 .type-row {
@@ -378,8 +441,9 @@ body {
     padding: 8px 12px;
     font-family: inherit;
     font-size: 0.9rem;
-    min-width: 120px;
+    flex: 0.6;
     cursor: pointer;
+    min-width: 100px;
 }
 
 .format-select:focus {
@@ -390,6 +454,14 @@ body {
 .format-select option {
     background: #1e2347;
     color: #e4edfc;
+}
+
+.export-controls .extract-btn {
+    margin: 0;
+    flex: 1.4;
+    padding: 12px 16px;
+    font-size: 1.05em;
+    font-weight: 700;
 }
 
 /* Stats Bar */

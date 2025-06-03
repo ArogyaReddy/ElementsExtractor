@@ -27,16 +27,13 @@ const elementTypeList = [
   {id: 'filterButtons', label: 'Buttons', selector: "button,input[type='button'],input[type='submit']"},
   {id: 'filterInputs', label: 'Inputs', selector: 'input,select,textarea'},
   {id: 'filterCombo', label: 'Combo', selector: "select,[role='combobox']"},
-  {id: 'filterHeaders', label: 'Headers', selector: 'h1,h2,h3,h4,h5,h6'},
   {id: 'filterTextboxes', label: 'Textboxes', selector: "input[type='text'],input[type='search'],input[type='email'],input[type='url'],input[type='password']"},
   {id: 'filterCheckboxes', label: 'Checkboxes', selector: "input[type='checkbox']"},
   {id: 'filterRadios', label: 'Radios', selector: "input[type='radio']"},
   {id: 'filterLists', label: 'Lists', selector: 'ul,ol,li,dl,dt,dd'},
   {id: 'filterForms', label: 'Forms', selector: 'form'},
-  {id: 'filterSVG', label: 'SVG', selector: 'svg'},
-  {id: 'filterTables', label: 'Tables', selector: 'table,thead,tbody,tr,td,th'},
-  {id: 'filterSpans', label: 'Spans', selector: 'span'},
-  {id: 'filterDivs', label: 'Divs', selector: 'div'},
+  {id: 'filterImages', label: 'Images', selector: 'img'},
+  {id: 'filterIframes', label: 'Iframes', selector: 'iframe'},
   {id: 'filterCustom', label: 'Custom Elements', selector: '*'}
 ];
 
@@ -130,7 +127,7 @@ function highlightElementOnTab(tabId, locator, inShadowDOM) {
       }
       if (el) {
         el.scrollIntoView({behavior: 'smooth', block: 'center'});
-        el.style.outline = '3px solid #48b5f3';
+        el.style.outline = '3px solid #ff0000';
         setTimeout(() => {
           el.style.outline = '';
         }, 1500);
@@ -249,20 +246,25 @@ document.getElementById('extract').onclick = async () => {
       updateStatsDisplay(elementDataList);
       // Get selected export format and compose filename
       let exportFormat = document.getElementById('exportFormat').value;
-      let now = new Date();
-      let timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
-      let filename = `${hostname}_elements_${timestamp}`;
       
-      // Download in selected format
-      switch(exportFormat) {
-        case 'json':
-          downloadJSONFile(elementDataList, filename + '.json');
-          break;
-        case 'excel':
-          downloadExcelFile(elementDataList, filename + '.xls');
-          break;
-        default:
-          downloadCSVFile(elementDataList, filename + '.csv');
+      // Only download files for non-Table formats
+      if (exportFormat !== 'table') {
+        let now = new Date();
+        let timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
+        let filename = `${hostname}_elements_${timestamp}`;
+        
+        // Download in selected format
+        switch(exportFormat) {
+          case 'json':
+            downloadJSONFile(elementDataList, filename + '.json');
+            break;
+          case 'excel':
+            downloadExcelFile(elementDataList, filename + '.xls');
+            break;
+          case 'csv':
+            downloadCSVFile(elementDataList, filename + '.csv');
+            break;
+        }
       }
       setTimeout(() => (extractBtn.disabled = false), 1100);
     }
@@ -286,16 +288,13 @@ function domExtractionFunction(filters) {
     filterButtons: "button,input[type='button'],input[type='submit']",
     filterInputs: 'input,select,textarea',
     filterCombo: "select,[role='combobox']",
-    filterHeaders: 'h1,h2,h3,h4,h5,h6',
     filterTextboxes: "input[type='text'],input[type='search'],input[type='email'],input[type='url'],input[type='password']",
     filterCheckboxes: "input[type='checkbox']",
     filterRadios: "input[type='radio']",
     filterLists: 'ul,ol,li,dl,dt,dd',
     filterForms: 'form',
-    filterSVG: 'svg',
-    filterTables: 'table,thead,tbody,tr,td,th',
-    filterSpans: 'span',
-    filterDivs: 'div',
+    filterImages: 'img',
+    filterIframes: 'iframe',
     filterCustom: '*'
   };
 
@@ -385,16 +384,13 @@ function domExtractionFunction(filters) {
     if (el.matches("button,input[type='button'],input[type='submit']")) return 'BTN';
     if (el.matches('input,select,textarea')) return 'INPUT';
     if (el.matches("select,[role='combobox']")) return 'COMBO';
-    if (el.matches('h1,h2,h3,h4,h5,h6')) return 'HDR';
     if (el.matches("input[type='text'],input[type='search'],input[type='email'],input[type='url'],input[type='password']")) return 'TXT';
     if (el.matches("input[type='checkbox']")) return 'CHK';
     if (el.matches("input[type='radio']")) return 'RADIO';
     if (el.matches('ul,ol,li,dl,dt,dd')) return 'LIST';
     if (el.matches('form')) return 'FORM';
-    if (el.matches('svg')) return 'SVG';
-    if (el.matches('table,thead,tbody,tr,td,th')) return 'TABLE';
-    if (el.matches('span')) return 'SPAN';
-    if (el.matches('div')) return 'DIV';
+    if (el.matches('img')) return 'IMG';
+    if (el.matches('iframe')) return 'IFRAME';
     if (el.tagName && el.tagName.includes('-')) return 'CUSTOM';
     return el.tagName;
   }
@@ -696,6 +692,20 @@ document.getElementById('search').oninput = function () {
     if (idx == 0) return; // header
     let name = row.cells[0].textContent.toLowerCase();
     row.style.display = !text || name.includes(text) ? '' : 'none';
+  });
+};
+
+// ---- CLEAR SEARCH Button ----
+document.getElementById('clearSearch').onclick = function () {
+  const searchBox = document.getElementById('search');
+  searchBox.value = '';
+  searchBox.focus();
+  
+  // Trigger search filter to show all rows again
+  let tableRows = document.querySelectorAll('#preview table tr');
+  tableRows.forEach((row, idx) => {
+    if (idx == 0) return; // header
+    row.style.display = '';
   });
 };
 
