@@ -3,6 +3,16 @@
 // ---- AI Tip List ----
 const aiTips = ['Did you know? [role] and [aria-label] improve accessibility and test stability.', 'AI Tip: Interactable (clickable) elements are best for automation.', 'Pro tip: Prefer visible elements for automation—hidden ones may change.', 'AI Tip: IDs are the most stable selectors—use them if available!', 'AI Tip: XPath lets you select by text, attribute, or position.', 'AI Tip: Use CSS selectors for faster automation scripts.', 'AI Tip: Filter by element type for faster locator selection.', 'Pro tip: Combine CSS classes for more unique selectors.'];
 
+// ---- Element Inspector State ----
+let isInspectingGlobal = false; // Tracks if inspect mode is active
+
+// ---- Pagination State ----
+let currentPage = 1;
+let itemsPerPage = 12;
+let currentFilteredData = [];
+let showAllMode = false;
+let allOriginalData = []; // Store the complete dataset
+
 // ---- On Load: Setup UI, Restore Table ----
 document.addEventListener('DOMContentLoaded', () => {
   // Show random tip at top
@@ -11,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Make only "All Elements" checked initially; others unchecked
   document.getElementById('filterAll').checked = true;
   elementTypeList.forEach(type => (document.getElementById(type.id).checked = false));
+
+  // Check for recent inspection data and display it
+  checkForRecentInspectionData();
 
   // Restore last data (if any) from storage for user
   chrome.storage.local.get(['lastExtractedData'], res => {
@@ -69,14 +82,34 @@ function getCurrentFilters() {
   };
 }
 
+// ---- Utility: Check if URL is restricted ----
+function isRestrictedUrl(url) {
+  if (!url) return true;
+  const restrictedProtocols = ['chrome:', 'chrome-extension:', 'moz-extension:', 'edge:', 'about:', 'data:', 'javascript:'];
+  const restrictedPages = ['chrome.google.com/webstore', 'addons.mozilla.org', 'microsoftedge.microsoft.com'];
+  
+  return restrictedProtocols.some(protocol => url.startsWith(protocol)) ||
+         restrictedPages.some(page => url.includes(page));
+}
+
 // ---- Utility: Get current active tab info ----
 async function getCurrentTabInfo() {
   let [tab] = await chrome.tabs.query({active: true, currentWindow: true});
   try {
     const url = new URL(tab.url);
-    return {hostname: url.hostname, tabId: tab.id};
+    return {
+      hostname: url.hostname, 
+      tabId: tab.id, 
+      url: tab.url,
+      isRestricted: isRestrictedUrl(tab.url)
+    };
   } catch (e) {
-    return {hostname: 'site', tabId: tab.id};
+    return {
+      hostname: 'site', 
+      tabId: tab.id, 
+      url: tab.url || '',
+      isRestricted: true
+    };
   }
 }
 
@@ -242,6 +275,10 @@ document.getElementById('extract').onclick = async () => {
         return;
       }
       document.getElementById('status').textContent = 'Scanned elements!';
+      
+      // Reset pagination for new data
+      resetToFirstPage();
+      
       renderElementsTable(elementDataList);
       updateStatsDisplay(elementDataList);
       // Get selected export format and compose filename
@@ -622,14 +659,53 @@ function domExtractionFunction(filters) {
 
 //TODO: ---
 function renderElementsTable(data) {
+  // Store original data if this is a new dataset
+  if (JSON.stringify(data) !== JSON.stringify(allOriginalData)) {
+    allOriginalData = [...data]; // Create a copy to avoid reference issues
+  }
+  
   const search = document.getElementById('search').value;
   let filteredData = data.filter(row => nameMatchesSearch(row['Element Name'], search));
+  
+  // Store filtered data for reference
+  currentFilteredData = [...filteredData]; // Create a copy to avoid reference issues
   
   // Update stats display
   updateStatsDisplay(data);
   
-  let maxRows = 12;
-  let previewHTML = `<b>Preview (first ${Math.min(maxRows, filteredData.length)} of ${filteredData.length}):</b>
+  // Calculate pagination
+  const totalItems = filteredData.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  
+  // Ensure current page is valid
+  if (currentPage > totalPages && totalPages > 0) {
+    currentPage = totalPages;
+  }
+  if (currentPage < 1) {
+    currentPage = 1;
+  }
+  
+  // Calculate which items to show
+  let startIndex, endIndex;
+  if (showAllMode) {
+    startIndex = 0;
+    endIndex = totalItems;
+  } else {
+    startIndex = (currentPage - 1) * itemsPerPage;
+    endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  }
+  
+  const itemsToShow = filteredData.slice(startIndex, endIndex);
+  
+  // Build table HTML
+  let previewHTML = '';
+  if (showAllMode) {
+    previewHTML = `<b>Showing all ${totalItems} elements:</b>`;
+  } else {
+    previewHTML = `<b>Preview (${startIndex + 1}-${endIndex} of ${totalItems}):</b>`;
+  }
+  
+  previewHTML += `
     <table><tr>
     <th>Name</th>
     <th>Type</th>
@@ -641,8 +717,9 @@ function renderElementsTable(data) {
     <th>Shadow</th>
     <th>Copy</th>
     <th>Highlight</th></tr>`;
-  for (let i = 0; i < Math.min(filteredData.length, maxRows); ++i) {
-    let r = filteredData[i];
+    
+  for (let i = 0; i < itemsToShow.length; i++) {
+    let r = itemsToShow[i];
     previewHTML += `<tr>
       <td title="${r['Element Name']}">${r['Element Name']}</td>
       <td><span class="el-badge">${r['Element Type']}</span></td>
@@ -658,7 +735,59 @@ function renderElementsTable(data) {
   }
   previewHTML += '</table>';
   document.getElementById('preview').innerHTML = previewHTML;
+  
+  // Update pagination controls
+  updatePaginationControls(totalItems, totalPages);
+  
   setTimeout(() => bindTablePreviewButtons(), 100);
+}
+
+// ---- UPDATE: Pagination Controls ----
+function updatePaginationControls(totalItems, totalPages) {
+  const paginationControls = document.getElementById('paginationControls');
+  const currentPageSpan = document.getElementById('currentPage');
+  const totalPagesSpan = document.getElementById('totalPages');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const showAllBtn = document.getElementById('showAllBtn');
+  
+  if (totalItems <= itemsPerPage && !showAllMode) {
+    // Hide pagination if all items fit on one page
+    paginationControls.style.display = 'none';
+    return;
+  }
+  
+  // Show pagination controls
+  paginationControls.style.display = 'flex';
+  
+  if (showAllMode) {
+    currentPageSpan.textContent = 'All';
+    totalPagesSpan.textContent = 'All';
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
+    showAllBtn.textContent = 'Show Pages';
+    showAllBtn.title = 'Show paginated view';
+    showAllBtn.classList.add('active');
+  } else {
+    currentPageSpan.textContent = currentPage;
+    totalPagesSpan.textContent = totalPages;
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+    showAllBtn.textContent = 'Show All';
+    showAllBtn.title = 'Show all elements';
+    showAllBtn.classList.remove('active');
+  }
+}
+
+// ---- PAGINATION: Reset to first page ----
+function resetToFirstPage() {
+  currentPage = 1;
+  showAllMode = false;
+  const showAllBtn = document.getElementById('showAllBtn');
+  if (showAllBtn) {
+    showAllBtn.textContent = 'Show All';
+    showAllBtn.classList.remove('active');
+  }
 }
 
 // ---- BIND: Copy/Highlight buttons in preview ----
@@ -685,14 +814,13 @@ function bindTablePreviewButtons() {
 
 // ---- SEARCH Filter ----
 document.getElementById('search').oninput = function () {
-  let tableRows = document.querySelectorAll('#preview table tr');
-  if (!tableRows.length) return;
-  let text = this.value.trim().toLowerCase();
-  tableRows.forEach((row, idx) => {
-    if (idx == 0) return; // header
-    let name = row.cells[0].textContent.toLowerCase();
-    row.style.display = !text || name.includes(text) ? '' : 'none';
-  });
+  // Reset to first page when searching
+  resetToFirstPage();
+  
+  // Re-render table with current search term using the original data
+  if (allOriginalData.length > 0) {
+    renderElementsTable(allOriginalData);
+  }
 };
 
 // ---- CLEAR SEARCH Button ----
@@ -701,13 +829,25 @@ document.getElementById('clearSearch').onclick = function () {
   searchBox.value = '';
   searchBox.focus();
   
+  // Reset pagination when clearing search
+  resetToFirstPage();
+  
   // Trigger search filter to show all rows again
   let tableRows = document.querySelectorAll('#preview table tr');
   tableRows.forEach((row, idx) => {
     if (idx == 0) return; // header
     row.style.display = '';
   });
+  
+  // Re-render if we have data using original data
+  if (allOriginalData.length > 0) {
+    renderElementsTable(allOriginalData);
+  }
 };
+
+// Pagination event handlers are defined at the bottom of the file using addEventListener
+
+// Show All button handler is defined at the bottom of the file using addEventListener
 
 // ---- Update Stats Display ----
 function updateStatsDisplay(elementList) {
@@ -766,7 +906,470 @@ if (document.getElementById('filterAll').checked) {
 // ---- Get Strength CSS Class ----
 function getStrengthClass(strength) {
   if (strength >= 80) return 'high';
-  if (strength >= 60) return 'medium';
-  if (strength >= 40) return 'low';
-  return 'poor';
+  if (strength >= 50) return 'medium';
+  return 'low';
 }
+
+// ---- Pagination Functions ----
+function resetToFirstPage() {
+  currentPage = 1;
+  showAllMode = false;
+}
+
+// ---- Pagination Event Handlers ----
+document.getElementById('prevBtn').addEventListener('click', () => {
+  if (currentPage > 1 && !showAllMode) {
+    currentPage--;
+    if (allOriginalData.length > 0) {
+      renderElementsTable(allOriginalData);
+    }
+  }
+});
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  const search = document.getElementById('search').value;
+  const filteredData = allOriginalData.filter(row => nameMatchesSearch(row['Element Name'], search));
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  
+  if (currentPage < totalPages && !showAllMode) {
+    currentPage++;
+    if (allOriginalData.length > 0) {
+      renderElementsTable(allOriginalData);
+    }
+  }
+});
+
+document.getElementById('showAllBtn').addEventListener('click', () => {
+  showAllMode = !showAllMode;
+  const btn = document.getElementById('showAllBtn');
+  
+  if (showAllMode) {
+    btn.textContent = 'Show Pages';
+    btn.classList.add('active');
+  } else {
+    btn.textContent = 'Show All';
+    btn.classList.remove('active');
+    currentPage = 1;
+  }
+  
+  // Always use allOriginalData to ensure consistent behavior
+  if (allOriginalData.length > 0) {
+    renderElementsTable(allOriginalData);
+  }
+});
+
+// ---- Element Inspector Event Handlers ----
+document.addEventListener('DOMContentLoaded', () => {
+  // Inspector button event handler
+  const inspectElementBtn = document.getElementById('inspectElement');
+  const inspectedElementDetailsDiv = document.getElementById('inspected-element-details');
+  const inspectorStatusDiv = document.getElementById('inspector-status');
+
+  // Load inspection state from storage when popup opens
+  chrome.storage.local.get(['isInspecting'], (result) => {
+    if (result.isInspecting) {
+      isInspectingGlobal = true;
+      inspectElementBtn.classList.add('inspecting');
+      inspectElementBtn.textContent = '🔴 Stop Inspecting';
+      inspectorStatusDiv.textContent = '🔬 Inspect Mode: Click an element on the page.';
+    }
+  });
+
+  if (inspectElementBtn) {
+    inspectElementBtn.addEventListener('click', async () => {
+      const tabInfo = await getCurrentTabInfo();
+      if (!tabInfo || tabInfo.tabId === null) {
+        inspectorStatusDiv.textContent = '❌ Error: No active tab found.';
+        return;
+      }
+
+      // Check if the current page is restricted
+      if (tabInfo.isRestricted) {
+        inspectorStatusDiv.textContent = '❌ Error: Cannot inspect elements on this page (restricted URL).';
+        return;
+      }
+
+      isInspectingGlobal = !isInspectingGlobal; // Toggle inspect mode
+
+      if (isInspectingGlobal) {
+        // Save inspection state to storage
+        chrome.storage.local.set({ isInspecting: true });
+        
+        inspectorStatusDiv.textContent = '🔬 Inspect Mode: Click an element on the page.';
+        inspectElementBtn.classList.add('inspecting');
+        inspectElementBtn.textContent = '🔴 Stop Inspecting';
+        inspectedElementDetailsDiv.style.display = 'none'; // Hide previous details
+        inspectedElementDetailsDiv.innerHTML = ''; // Clear previous details
+
+        // First, ping the content script to ensure it's responsive
+        console.log("Element AI Extractor: Pinging content script...");
+        inspectorStatusDiv.textContent = '🔄 Testing connection to page...';
+        
+        // Set a timeout for the ping
+        const pingTimeoutId = setTimeout(() => {
+          console.warn("Element AI Extractor: Ping timeout, assuming content script not loaded");
+          injectContentScriptWithRetry(tabInfo.tabId, 3);
+        }, 1500); // 1.5 second timeout
+        
+        chrome.tabs.sendMessage(tabInfo.tabId, {
+          action: "ping"
+        }, (pingResponse) => {
+          clearTimeout(pingTimeoutId);
+          console.log("Element AI Extractor: Ping response:", pingResponse, "Error:", chrome.runtime.lastError);
+          
+          if (chrome.runtime.lastError || !pingResponse) {
+            console.warn("Element AI Extractor: Content script not responsive. Attempting to inject. Error:", chrome.runtime.lastError?.message);
+            
+            // Try to inject the content script manually with retries
+            injectContentScriptWithRetry(tabInfo.tabId, 3);
+          } else {
+            console.log("Element AI Extractor: Content script is responsive, proceeding with inspection");
+            // Content script is responsive, proceed with inspection
+            startInspectionDirectly(tabInfo.tabId);
+          }
+        });
+      } else {
+        // Clear inspection state from storage FIRST
+        chrome.storage.local.set({ isInspecting: false });
+        
+        // Update UI immediately
+        isInspectingGlobal = false;
+        inspectorStatusDiv.textContent = 'Inspection stopped.';
+        inspectElementBtn.classList.remove('inspecting');
+        inspectElementBtn.textContent = '🔬 Inspect Element';
+        
+        // Clear any displayed element details
+        inspectedElementDetailsDiv.style.display = 'none';
+        inspectedElementDetailsDiv.innerHTML = '';
+        
+        // Send message to content script to stop inspecting
+        chrome.tabs.sendMessage(tabInfo.tabId, {
+          action: "stopInspectingAiExtractor"
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.warn("Element AI Extractor: Error sending stopInspecting message or content script already inactive.", chrome.runtime.lastError.message);
+          } else {
+            console.log("Element AI Extractor: Successfully sent stop inspection message to content script");
+          }
+        });
+      }
+    });
+  }
+
+  // Helper function to inject content script with retries
+  function injectContentScriptWithRetry(tabId, attemptsLeft) {
+    const inspectorStatusDiv = document.getElementById('inspector-status');
+    
+    if (attemptsLeft <= 0) {
+      console.error("Element AI Extractor: All injection attempts failed");
+      inspectorStatusDiv.textContent = '❌ Error: Cannot inject content script after multiple attempts.';
+      resetInspectionState();
+      return;
+    }
+
+    console.log(`Element AI Extractor: Attempting content script injection (${4 - attemptsLeft}/3)`);
+    inspectorStatusDiv.textContent = `🔄 Injecting content script (attempt ${4 - attemptsLeft}/3)...`;
+    
+    // First try to check current tab info and restrictions
+    chrome.tabs.get(tabId, (tab) => {
+      if (chrome.runtime.lastError) {
+        console.error("Element AI Extractor: Cannot access tab:", chrome.runtime.lastError.message);
+        inspectorStatusDiv.textContent = '❌ Error: Cannot access current tab.';
+        resetInspectionState();
+        return;
+      }
+      
+      console.log("Element AI Extractor: Tab URL:", tab.url);
+      
+      // Check if URL is restricted
+      if (isRestrictedUrl(tab.url)) {
+        console.warn("Element AI Extractor: Cannot inject on restricted URL:", tab.url);
+        inspectorStatusDiv.textContent = '❌ Error: Cannot inspect elements on this page (restricted URL).';
+        resetInspectionState();
+        return;
+      }
+      
+      // Try injection using file method
+      chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['contentScript.js']
+      }).then(() => {
+        console.log("Element AI Extractor: Content script injection successful");
+        inspectorStatusDiv.textContent = '🔄 Content script injected, testing connection...';
+        
+        // Wait longer for script to initialize
+        setTimeout(() => {
+          // Test if the script is now responsive with timeout
+          const timeoutId = setTimeout(() => {
+            console.warn("Element AI Extractor: Ping timeout after injection");
+            if (attemptsLeft > 1) {
+              console.log("Element AI Extractor: Retrying injection...");
+              injectContentScriptWithRetry(tabId, attemptsLeft - 1);
+            } else {
+              inspectorStatusDiv.textContent = '❌ Error: Content script not responding after injection.';
+              resetInspectionState();
+            }
+          }, 2000); // 2 second timeout
+          
+          chrome.tabs.sendMessage(tabId, { action: "ping" }, (pingResponse) => {
+            clearTimeout(timeoutId);
+            
+            if (chrome.runtime.lastError || !pingResponse) {
+              console.warn("Element AI Extractor: Content script still not responsive after injection, retrying...");
+              // Retry injection
+              setTimeout(() => {
+                injectContentScriptWithRetry(tabId, attemptsLeft - 1);
+              }, 300);
+            } else {
+              console.log("Element AI Extractor: Content script is now responsive after injection");
+              startInspectionAfterInjection(tabId);
+            }
+          });
+        }, 500); // Wait 500ms for initialization
+      }).catch((error) => {
+        console.error("Element AI Extractor: Content script injection failed:", error);
+        
+        // If file injection fails, try a different approach - check if it's already loaded
+        console.log("Element AI Extractor: File injection failed, checking if script already exists...");
+        
+        chrome.tabs.sendMessage(tabId, { action: "ping" }, (pingResponse) => {
+          if (chrome.runtime.lastError || !pingResponse) {
+            // Script truly not loaded, try again or fail
+            if (attemptsLeft > 1) {
+              console.log("Element AI Extractor: Retrying injection after failure...");
+              setTimeout(() => {
+                injectContentScriptWithRetry(tabId, attemptsLeft - 1);
+              }, 500);
+            } else {
+              inspectorStatusDiv.textContent = '❌ Error: Cannot inject content script. Check page permissions.';
+              resetInspectionState();
+            }
+          } else {
+            // Script was already there, proceed
+            console.log("Element AI Extractor: Content script was already present");
+            startInspectionAfterInjection(tabId);
+          }
+        });
+      });
+    });
+  }
+
+  // Helper function to start inspection directly (when content script is already loaded)
+  function startInspectionDirectly(tabId) {
+    const inspectorStatusDiv = document.getElementById('inspector-status');
+    chrome.tabs.sendMessage(tabId, {
+      action: "startInspectingAiExtractor"
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("Element AI Extractor: Unexpected error during inspection start:", chrome.runtime.lastError.message);
+        inspectorStatusDiv.textContent = '❌ Error: Failed to start inspection.';
+        resetInspectionState();
+      } else if (response && response.status === 'error') {
+        console.warn("Element AI Extractor: Content script reported an error:", response.message);
+        inspectorStatusDiv.textContent = `❌ Error: ${response.message}`;
+        resetInspectionState();
+      } else if (response && response.status === 'listening') {
+        console.log("Element AI Extractor: Content script is now listening for inspection.");
+        inspectorStatusDiv.textContent = '🔬 Inspect Mode: Click an element on the page.';
+      }
+    });
+  }
+
+  // Helper function to start inspection after manual injection
+  function startInspectionAfterInjection(tabId) {
+    const inspectorStatusDiv = document.getElementById('inspector-status');
+    chrome.tabs.sendMessage(tabId, {
+      action: "startInspectingAiExtractor"
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("Element AI Extractor: Still cannot connect after manual injection:", chrome.runtime.lastError.message);
+        inspectorStatusDiv.textContent = '❌ Error: Cannot connect to page. Try reloading the page/extension.';
+        resetInspectionState();
+      } else if (response && response.status === 'listening') {
+        console.log("Element AI Extractor: Content script is now listening after manual injection.");
+        inspectorStatusDiv.textContent = '🔬 Inspect Mode: Click an element on the page.';
+      } else if (response && response.status === 'error') {
+        inspectorStatusDiv.textContent = `❌ Error: ${response.message}`;
+        resetInspectionState();
+      }
+    });
+  }
+
+  // Helper function to reset inspection state
+  function resetInspectionState() {
+    isInspectingGlobal = false;
+    // Clear inspection state from storage
+    chrome.storage.local.set({ isInspecting: false });
+    const inspectElementBtn = document.getElementById('inspectElement');
+    inspectElementBtn.classList.remove('inspecting');
+    inspectElementBtn.textContent = '🔬 Inspect Element';
+  }
+
+  // Note: We intentionally do NOT stop inspection when popup closes
+  // This allows inspection to persist when popup closes automatically
+  // Users must manually click "Stop Inspecting" to end inspection mode
+});
+
+// ---- Inspector Message Listener ----
+// Listen for data sent back from contentScript.js after an element is inspected
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "inspectedElementDataAiExtractor") {
+    console.log("Popup received inspected element data:", message.data);
+    const inspectedElementDetailsDiv = document.getElementById('inspected-element-details');
+    const inspectorStatusDiv = document.getElementById('inspector-status');
+    const inspectElementBtn = document.getElementById('inspectElement');
+
+    if (message.data) {
+      // Display the inspected element details
+      const data = message.data;
+      const isInShadow = data['In Shadow DOM'] === 'Yes';
+      
+      inspectedElementDetailsDiv.innerHTML = `
+        <h4>🔍 Inspected Element Details</h4>
+        <table>
+          <tr><td>Element Name:</td><td>${data['Element Name'] || 'N/A'}</td></tr>
+          <tr><td>Element Type:</td><td><span class="el-badge">${data['Element Type'] || 'N/A'}</span></td></tr>
+          <tr><td>Best Locator:</td><td title="${data['Best Locator'] || 'N/A'}">${data['Best Locator'] || 'N/A'}</td></tr>
+          <tr><td>Locator Type:</td><td>${data['Locator Type'] || 'N/A'}</td></tr>
+          <tr><td>Strength:</td><td><span class="strength-badge strength-${getStrengthClass(data['Strength'] || 50)}">${data['Strength'] || 'N/A'}%</span></td></tr>
+          <tr><td>ID:</td><td title="${data['ID'] || 'N/A'}">${data['ID'] || 'N/A'}</td></tr>
+          <tr><td>CSS Selector:</td><td title="${data['CSS'] || 'N/A'}">${data['CSS'] || 'N/A'}</td></tr>
+          <tr><td>XPath:</td><td title="${data['XPATH'] || 'N/A'}">${data['XPATH'] || 'N/A'}</td></tr>
+          <tr><td>In Shadow DOM:</td><td>${isInShadow ? '<span class="shadow-badge">Shadow</span>' : 'No'}</td></tr>
+        </table>
+        <div style="margin-top: 12px; display: flex; gap: 8px;">
+          <button class="copy-btn" 
+                  data-copy="${data['Best Locator'] || ''}" 
+                  title="Copy best locator to clipboard">📋 Copy</button>
+          <button class="hl-btn" 
+                  data-hl="${data['Best Locator'] || ''}" 
+                  data-shadow="${isInShadow ? '1' : '0'}"
+                  title="Highlight element">👁️ Highlight</button>
+        </div>`;
+      
+      inspectedElementDetailsDiv.style.display = 'block';
+      requestAnimationFrame(() => bindTablePreviewButtons()); // Re-bind for these new buttons
+      inspectorStatusDiv.textContent = '✅ Element Inspected! Click another element or Stop Inspecting.';
+    } else {
+      inspectorStatusDiv.textContent = '❌ Inspection did not return element data.';
+    }
+
+    // DON'T reset inspect mode - keep it active for continuous inspection
+    // The user should manually click "Stop Inspecting" to exit
+    // isInspectingGlobal = false;  // REMOVED
+    // if (inspectElementBtn) {     // REMOVED
+    //   inspectElementBtn.classList.remove('inspecting');  // REMOVED
+    //   inspectElementBtn.textContent = '🔬 Inspect Element';  // REMOVED
+    // }  // REMOVED
+    
+    sendResponse({status: "popupReceivedData"}); // Acknowledge receipt
+    return true; // Keep listener open for async response
+  }
+  
+  // Handle inspection stopped from floating badge
+  if (message.action === "inspectionStoppedFromBadge") {
+    console.log("Popup received inspection stopped from badge");
+    const inspectElementBtn = document.getElementById('inspectElement');
+    const inspectorStatusDiv = document.getElementById('inspector-status');
+    const inspectedElementDetailsDiv = document.getElementById('inspected-element-details');
+    
+    // Update popup UI to reflect stopped state
+    isInspectingGlobal = false;
+    if (inspectElementBtn) {
+      inspectElementBtn.classList.remove('inspecting');
+      inspectElementBtn.textContent = '🔬 Inspect Element';
+    }
+    if (inspectorStatusDiv) {
+      inspectorStatusDiv.textContent = 'Inspection stopped from page.';
+    }
+    if (inspectedElementDetailsDiv) {
+      inspectedElementDetailsDiv.style.display = 'none';
+      inspectedElementDetailsDiv.innerHTML = '';
+    }
+    
+    sendResponse({status: "popupUpdated"});
+    return true;
+  }
+});
+
+// ---- Utility: Check for recent inspection data ----
+async function checkForRecentInspectionData() {
+  try {
+    const result = await chrome.storage.local.get(['lastInspectedElement']);
+    if (result.lastInspectedElement) {
+      const inspectedData = result.lastInspectedElement;
+      const timeDiff = Date.now() - inspectedData.timestamp;
+      
+      // Show data if it's less than 5 minutes old
+      if (timeDiff < 5 * 60 * 1000) {
+        console.log("Element AI Extractor: Found recent inspection data", inspectedData.data);
+        displayInspectedElementData(inspectedData.data);
+        
+        // Update status to show this is recent data
+        const inspectorStatusDiv = document.getElementById('inspector-status');
+        if (inspectorStatusDiv) {
+          inspectorStatusDiv.textContent = '✅ Recent inspection data loaded.';
+        }
+      } else {
+        // Clear old data
+        chrome.storage.local.remove(['lastInspectedElement']);
+      }
+    }
+  } catch (error) {
+    console.error("Element AI Extractor: Error checking inspection data:", error);
+  }
+}
+
+// ---- Utility: Display inspected element data ----
+function displayInspectedElementData(data) {
+  const inspectedElementDetailsDiv = document.getElementById('inspected-element-details');
+  if (!inspectedElementDetailsDiv || !data) return;
+  
+  const isInShadow = data['In Shadow DOM'] === 'Yes';
+  
+  inspectedElementDetailsDiv.innerHTML = `
+    <h4>🔍 Inspected Element Details</h4>
+    <table>
+      <tr><td>Element Name:</td><td>${data['Element Name'] || 'N/A'}</td></tr>
+      <tr><td>Element Type:</td><td><span class="el-badge">${data['Element Type'] || 'N/A'}</span></td></tr>
+      <tr><td>Best Locator:</td><td title="${data['Best Locator'] || 'N/A'}">${data['Best Locator'] || 'N/A'}</td></tr>
+      <tr><td>Locator Type:</td><td>${data['Locator Type'] || 'N/A'}</td></tr>
+      <tr><td>Strength:</td><td><span class="strength-badge strength-${getStrengthClass(data['Strength'] || 50)}">${data['Strength'] || 'N/A'}%</span></td></tr>
+      <tr><td>ID:</td><td title="${data['ID'] || 'N/A'}">${data['ID'] || 'N/A'}</td></tr>
+      <tr><td>CSS Selector:</td><td title="${data['CSS'] || 'N/A'}">${data['CSS'] || 'N/A'}</td></tr>
+      <tr><td>XPath:</td><td title="${data['XPATH'] || 'N/A'}">${data['XPATH'] || 'N/A'}</td></tr>
+      <tr><td>In Shadow DOM:</td><td>${isInShadow ? '<span class="shadow-badge">Shadow</span>' : 'No'}</td></tr>
+    </table>
+    <div style="margin-top: 12px; display: flex; gap: 8px;">
+      <button class="copy-btn" 
+              data-copy="${data['Best Locator'] || ''}" 
+              title="Copy best locator to clipboard">📋 Copy</button>
+      <button class="hl-btn" 
+              data-hl="${data['Best Locator'] || ''}" 
+              data-shadow="${isInShadow ? '1' : '0'}"
+              title="Highlight element">👁️ Highlight</button>
+    </div>`;
+  
+  inspectedElementDetailsDiv.style.display = 'block';
+  
+  // Re-bind buttons
+  requestAnimationFrame(() => bindTablePreviewButtons());
+}
+
+// ---- Storage Listener for Inspection Data ----
+// Listen for storage changes to detect new inspection data
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.lastInspectedElement) {
+    const newData = changes.lastInspectedElement.newValue;
+    if (newData && newData.data) {
+      console.log("Element AI Extractor: New inspection data detected", newData.data);
+      displayInspectedElementData(newData.data);
+      
+      // Update status
+      const inspectorStatusDiv = document.getElementById('inspector-status');
+      if (inspectorStatusDiv && inspectorStatusDiv.textContent.includes('Inspect Mode')) {
+        inspectorStatusDiv.textContent = '✅ Element Inspected! Click another element or Stop Inspecting.';
+      }
+    }
+  }
+});

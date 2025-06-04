@@ -64,6 +64,17 @@
             </label>
         </div>
 
+        <!-- Inspector Section -->
+        <div class="inspector-section">
+            <button class="inspect-btn" id="inspectElement" title="Click to inspect elements one by one">
+                <span class="inspect-icon">🔬</span> Inspect Element
+            </button>
+            <div id="inspector-status" class="inspector-status"></div>
+        </div>
+
+        <!-- Inspected Element Details -->
+        <div id="inspected-element-details" class="inspected-element-details" style="display: none;"></div>
+
         <div class="export-controls">
             <select id="exportFormat" class="format-select">
                 <option value="table" selected>Table</option>
@@ -77,6 +88,19 @@
         </div>
         <div id="status" class="status-row"></div>
         <div id="preview" class="preview-table"></div>
+        
+        <!-- Pagination Controls -->
+        <div class="pagination-controls" id="paginationControls" style="display: none;">
+            <div class="pagination-info">
+                Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+            </div>
+            <div class="pagination-buttons">
+                <button class="pagination-btn" id="prevBtn" title="Previous page">‹ Previous</button>
+                <button class="pagination-btn" id="nextBtn" title="Next page">Next ›</button>
+                <button class="pagination-btn show-all-btn" id="showAllBtn" title="Show all elements">Show All</button>
+            </div>
+        </div>
+        
         <div class="stats-bar" id="stats">
             <span id="elementCount">0 elements found</span>
             <span id="visibilityStats">0 visible • 0 hidden</span>
